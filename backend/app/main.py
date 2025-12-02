@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, status, Query, Response
+from fastapi import FastAPI, HTTPException, Depends, status, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -23,10 +23,6 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"],
 )
-
-@app.options("/{path:path}")
-async def options_handler(path: str):
-    return Response(status_code=200)
 
 # --- BAZA DANYCH ---
 MONGO_URL = os.getenv("MONGODB_URL", "mongodb://mongo:27017")
