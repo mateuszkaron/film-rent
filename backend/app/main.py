@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, status, Query
+from fastapi import FastAPI, HTTPException, Depends, status, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -15,11 +15,18 @@ app = FastAPI(title="Wypożyczalnia Video - Final Version")
 # --- CORS ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://frontend-service-989611935636.europe-central2.run.app"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
+
+@app.options("/{path:path}")
+async def options_handler(rest_of_path: str):
+    return Response(status_code=200)
 
 # --- BAZA DANYCH ---
 MONGO_URL = os.getenv("MONGODB_URL", "mongodb://mongo:27017")
