@@ -10,7 +10,7 @@ from typing import List, Optional
 from bson import ObjectId
 import os
 
-app = FastAPI(title="Wypożyczalnia Video - Full Version")
+app = FastAPI(title="Wypożyczalnia Video - Final Version")
 
 # --- CORS ---
 app.add_middleware(
@@ -23,8 +23,9 @@ app.add_middleware(
 
 # --- BAZA DANYCH ---
 MONGO_URL = os.getenv("MONGODB_URL", "mongodb://mongo:27017")
+DB_NAME = os.getenv("DB_NAME", "wypozyczalnia_db")
 client = AsyncIOMotorClient(MONGO_URL)
-db = client.wypozyczalnia_db
+db = client[DB_NAME]
 
 # --- SECURITY ---
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
@@ -64,9 +65,9 @@ async def register(user: UserCreate):
         "hashed_password": get_password_hash(user.password),
         "first_name": user.first_name,
         "last_name": user.last_name,
-        "address": user.address,             # <--- Zapisujemy adres
-        "phone_number": user.phone_number,   # <--- Zapisujemy telefon
-        "registered_at": datetime.utcnow(),  # <--- Data rejestracji
+        "address": user.address,
+        "phone_number": user.phone_number,
+        "registered_at": datetime.utcnow(),
         "role": "user",
         "active_rentals": []
     }
@@ -86,45 +87,34 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     return {"access_token": access_token, "token_type": "bearer", "user_id": str(user["_id"]), "role": user["role"]}
 
 # ==========================================
-# FILMY (PKT 1, 7, 8, 9)
+# FILMY
 # ==========================================
 
-# PKT 1: Lista z wyszukiwaniem i sortowaniem
 @app.get("/movies", response_model=List[MovieModel])
-async def get_movies(
-    search: Optional[str] = None, 
-    sort_by: Optional[str] = "title"
-):
+async def get_movies(search: Optional[str] = None, sort_by: Optional[str] = "title"):
     query = {}
     if search:
-        # Wyszukiwanie po tytule LUB gatunku (case insensitive)
         query["$or"] = [
             {"title": {"$regex": search, "$options": "i"}},
             {"genre": {"$regex": search, "$options": "i"}}
         ]
     
     cursor = db.movies.find(query)
-    
-    # Sortowanie
     if sort_by == "rating":
-        cursor.sort("rating", -1) # Malejąco
+        cursor.sort("rating", -1)
     else:
-        cursor.sort("title", 1) # Rosnąco (alfabetycznie)
+        cursor.sort("title", 1)
 
     return await cursor.to_list(100)
 
-# PKT 7: Dodaj Film
 @app.post("/movies", response_model=MovieModel)
 async def add_movie(movie: MovieModel, _: dict = Depends(get_admin_user)):
     new_movie = await db.movies.insert_one(movie.model_dump(by_alias=True, exclude=["id"]))
     return await db.movies.find_one({"_id": new_movie.inserted_id})
 
-# PKT 8: Modyfikuj Film
 @app.put("/movies/{movie_id}")
 async def update_movie(movie_id: str, movie_update: dict, _: dict = Depends(get_admin_user)):
-    # Usuwamy immutable pola jeśli przesłano
     movie_update.pop("_id", None) 
-    
     result = await db.movies.update_one(
         {"_id": ObjectId(movie_id)}, 
         {"$set": movie_update}
@@ -133,56 +123,24 @@ async def update_movie(movie_id: str, movie_update: dict, _: dict = Depends(get_
         raise HTTPException(status_code=404, detail="Film nie istnieje")
     return {"message": "Zaktualizowano"}
 
-# PKT 9: Usuń Film (Walidacja: czy nie jest wypożyczony)
 @app.delete("/movies/{movie_id}")
 async def delete_movie(movie_id: str, _: dict = Depends(get_admin_user)):
-    # Sprawdź czy są aktywne wypożyczenia tego filmu
-    active_rental = await db.rentals.find_one({
-        "movie_id": movie_id, 
-        "returned_at": None
-    })
-    if active_rental:
-        raise HTTPException(status_code=400, detail="Nie można usunąć filmu, który jest obecnie wypożyczony!")
+    if await db.rentals.find_one({"movie_id": movie_id, "returned_at": None}):
+        raise HTTPException(status_code=400, detail="Nie można usunąć wypożyczonego filmu!")
 
     await db.movies.delete_one({"_id": ObjectId(movie_id)})
     return {"message": "Film usunięty"}
 
 # ==========================================
-# KLIENCI (PKT 4, 5, 6)
+# KLIENCI
 # ==========================================
 
-# PKT 6 (część 1): Lista wszystkich klientów
 @app.get("/users", response_model=List[UserModel])
 async def get_users(_: dict = Depends(get_admin_user)):
     try:
-        users = await db.users.find().to_list(100)
-        print(f"DEBUG: Znaleziono {len(users)} użytkowników") # Debug
-        return users
+        return await db.users.find().to_list(100)
     except Exception as e:
-        print(f"DEBUG: Błąd w get_users: {e}")
-        raise HTTPException(status_code=500, detail=f"Błąd pobierania użytkowników: {str(e)}")
-
-# PKT 6 (część 2): Modyfikacja klienta
-@app.put("/users/{user_id}")
-async def update_user(user_id: str, user_data: dict, _: dict = Depends(get_admin_user)):
-    user_data.pop("_id", None)
-    user_data.pop("password", None) # Haseł nie edytujemy tędy
-    
-    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": user_data})
-    return {"message": "Dane klienta zaktualizowane"}
-
-# PKT 5: Usuń klienta (Walidacja: czy nie ma filmu)
-@app.delete("/users/{user_id}")
-async def delete_user(user_id: str, _: dict = Depends(get_admin_user)):
-    user = await db.users.find_one({"_id": ObjectId(user_id)})
-    if not user:
-        raise HTTPException(status_code=404, detail="Użytkownik nie znaleziony")
-    
-    if len(user.get("active_rentals", [])) > 0:
-         raise HTTPException(status_code=400, detail="Klient ma nieoddane filmy. Nie można usunąć.")
-    
-    await db.users.delete_one({"_id": ObjectId(user_id)})
-    return {"message": "Klient usunięty"}
+        raise HTTPException(status_code=500, detail=f"Błąd: {str(e)}")
 
 @app.put("/users/{user_id}")
 async def update_user(user_id: str, user_data: UserUpdate, _: dict = Depends(get_admin_user)):
@@ -190,22 +148,32 @@ async def update_user(user_id: str, user_data: UserUpdate, _: dict = Depends(get
     if not user:
         raise HTTPException(status_code=404, detail="Użytkownik nie znaleziony")
     
-    # Przygotuj dane do aktualizacji (tylko niepuste pola)
-    update_data = {k: v for k, v in user_data.dict().items() if v is not None}
+    # Aktualizujemy tylko pola przesłane (niepuste)
+    update_data = {k: v for k, v in user_data.model_dump().items() if v is not None}
     
     if update_data:
         await db.users.update_one(
             {"_id": ObjectId(user_id)}, 
             {"$set": update_data}
         )
-    
     return {"message": "Użytkownik zaktualizowany"}
 
+@app.delete("/users/{user_id}")
+async def delete_user(user_id: str, _: dict = Depends(get_admin_user)):
+    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        raise HTTPException(status_code=404, detail="Użytkownik nie znaleziony")
+    
+    if len(user.get("active_rentals", [])) > 0:
+         raise HTTPException(status_code=400, detail="Klient ma nieoddane filmy.")
+    
+    await db.users.delete_one({"_id": ObjectId(user_id)})
+    return {"message": "Klient usunięty"}
+
 # ==========================================
-# WYPOŻYCZENIA (PKT 2, 3)
+# WYPOŻYCZENIA
 # ==========================================
 
-# PKT 3: Wypożyczanie
 @app.post("/rentals")
 async def rent_movie(movie_id: str, user_id: Optional[str] = None, current_user: dict = Depends(get_current_user)):
     target_user_id = user_id if (current_user["role"] == "admin" and user_id) else str(current_user["_id"])
@@ -224,7 +192,6 @@ async def rent_movie(movie_id: str, user_id: Optional[str] = None, current_user:
         "user_id": target_user_id,
         "movie_id": movie_id,
         "movie_title": movie["title"],
-        # Zapisujemy pełne dane klienta do wypożyczenia
         "user_fullname": f"{target_user.get('first_name','')} {target_user.get('last_name','')}", 
         "user_email": target_user["email"],
         "rented_at": datetime.utcnow(),
@@ -238,7 +205,6 @@ async def rent_movie(movie_id: str, user_id: Optional[str] = None, current_user:
 
     return {"message": "Wypożyczono", "due_date": rental_data["due_date"]}
 
-# PKT 2: Lista wszystkich wypożyczeń (Dla Admina) - POPRAWKA: dodano response_model
 @app.get("/admin/rentals", response_model=List[RentalModel])
 async def get_all_rentals(_: dict = Depends(get_admin_user)):
     return await db.rentals.find().sort("rented_at", -1).to_list(200)
@@ -261,7 +227,6 @@ async def return_movie(rental_id: str, _: dict = Depends(get_admin_user)):
     )
     return {"message": "Zwrot przyjęty"}
 
-# Moje wypożyczenia (Dla usera) - POPRAWKA: dodano response_model
 @app.get("/my-rentals", response_model=List[RentalModel])
 async def get_my_rentals(current_user: dict = Depends(get_current_user)):
     return await db.rentals.find({"user_id": str(current_user["_id"])}).sort("rented_at", -1).to_list(50)
