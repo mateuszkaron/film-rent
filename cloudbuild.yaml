@@ -13,7 +13,7 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'europe-central2-docker.pkg.dev/$PROJECT_ID/film-rent/frontend-img']
 
-  # 4. Wdrożenie Backend do Cloud Run
+  # 4. Wdrożenie Backend do Cloud Run (Port 8080 domyślny)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -26,7 +26,7 @@ steps:
       - 'europe-central2'
       - '--allow-unauthenticated'
       - '--set-env-vars'
-      - 'MONGODB_URL=$_MONGO_URL'  # Tu wstrzykniemy adres Atlasa
+      - 'MONGODB_URL=$_MONGO_URL'
 
   # 5. Wdrożenie Frontend do Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
