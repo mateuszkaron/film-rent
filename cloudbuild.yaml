@@ -44,3 +44,6 @@ steps:
 images:
   - 'europe-central2-docker.pkg.dev/$PROJECT_ID/my-repo/backend-img'
   - 'europe-central2-docker.pkg.dev/$PROJECT_ID/my-repo/frontend-img'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
