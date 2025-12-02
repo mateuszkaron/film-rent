@@ -1,17 +1,17 @@
 steps:
   # 1. Budowanie obrazu Backend
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'europe-central2-docker.pkg.dev/$PROJECT_ID/my-repo/backend-img', './backend']
+    args: ['build', '-t', 'europe-central2-docker.pkg.dev/$PROJECT_ID/film-rent/backend-img', './backend']
 
   # 2. Budowanie obrazu Frontend
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'europe-central2-docker.pkg.dev/$PROJECT_ID/my-repo/frontend-img', './frontend']
+    args: ['build', '-t', 'europe-central2-docker.pkg.dev/$PROJECT_ID/film-rent/frontend-img', './frontend']
 
   # 3. Wypchnięcie obrazów do rejestru Google (Artifact Registry)
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'europe-central2-docker.pkg.dev/$PROJECT_ID/my-repo/backend-img']
+    args: ['push', 'europe-central2-docker.pkg.dev/$PROJECT_ID/film-rent/backend-img']
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'europe-central2-docker.pkg.dev/$PROJECT_ID/my-repo/frontend-img']
+    args: ['push', 'europe-central2-docker.pkg.dev/$PROJECT_ID/film-rent/frontend-img']
 
   # 4. Wdrożenie Backend do Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -21,7 +21,7 @@ steps:
       - 'deploy'
       - 'backend-service'
       - '--image'
-      - 'europe-central2-docker.pkg.dev/$PROJECT_ID/my-repo/backend-img'
+      - 'europe-central2-docker.pkg.dev/$PROJECT_ID/film-rent/backend-img'
       - '--region'
       - 'europe-central2'
       - '--allow-unauthenticated'
@@ -36,14 +36,14 @@ steps:
       - 'deploy'
       - 'frontend-service'
       - '--image'
-      - 'europe-central2-docker.pkg.dev/$PROJECT_ID/my-repo/frontend-img'
+      - 'europe-central2-docker.pkg.dev/$PROJECT_ID/film-rent/frontend-img'
       - '--region'
       - 'europe-central2'
       - '--allow-unauthenticated'
 
 images:
-  - 'europe-central2-docker.pkg.dev/$PROJECT_ID/my-repo/backend-img'
-  - 'europe-central2-docker.pkg.dev/$PROJECT_ID/my-repo/frontend-img'
+  - 'europe-central2-docker.pkg.dev/$PROJECT_ID/film-rent/backend-img'
+  - 'europe-central2-docker.pkg.dev/$PROJECT_ID/film-rent/frontend-img'
 
 options:
   logging: CLOUD_LOGGING_ONLY
