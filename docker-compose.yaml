@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  # Baza Danych (lokalnie, w chmurze użyjemy Atlasa)
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+  # Mikrousługa 1: Backend (Python API)
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URL=mongodb://mongo:27017
+      - SECRET_KEY=super_tajny_klucz_do_jwt
+    depends_on:
+      - mongo
+
+  # Mikrousługa 2: Frontend (Nginx)
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+volumes:
+  mongodb_data:
