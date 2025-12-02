@@ -40,8 +40,8 @@ steps:
       - '--region'
       - 'europe-central2'
       - '--allow-unauthenticated'
-      - '--port'   # <--- DODAJ TO
-      - '80'       # <--- DODAJ TO (Nginx domyślnie używa 80)
+      - '--port'
+      - '80'
 
 images:
   - 'europe-central2-docker.pkg.dev/$PROJECT_ID/film-rent/backend-img'
