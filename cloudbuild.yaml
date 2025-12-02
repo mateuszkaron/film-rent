@@ -28,7 +28,7 @@ steps:
       - '--set-env-vars'
       - 'MONGODB_URL=$_MONGO_URL'
 
-  # 5. Wdrożenie Frontend do Cloud Run
+# 5. Wdrożenie Frontend do Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -40,6 +40,8 @@ steps:
       - '--region'
       - 'europe-central2'
       - '--allow-unauthenticated'
+      - '--port'   # <--- DODAJ TO
+      - '80'       # <--- DODAJ TO (Nginx domyślnie używa 80)
 
 images:
   - 'europe-central2-docker.pkg.dev/$PROJECT_ID/film-rent/backend-img'
