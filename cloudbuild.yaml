@@ -1,19 +1,31 @@
 steps:
   # 1. Budowanie obrazu Backend
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'europe-central2-docker.pkg.dev/$PROJECT_ID/film-rent/backend-img', './backend']
+    args: ['build', '-t', 'europe-central2-docker.pkg.dev/$PROJECT_ID/my-repo/backend-img', './backend']
 
   # 2. Budowanie obrazu Frontend
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'europe-central2-docker.pkg.dev/$PROJECT_ID/film-rent/frontend-img', './frontend']
+    args: ['build', '-t', 'europe-central2-docker.pkg.dev/$PROJECT_ID/my-repo/frontend-img', './frontend']
 
-  # 3. Wypchnięcie obrazów do rejestru Google (Artifact Registry)
+  # --- NOWOŚĆ: URUCHOMIENIE TESTÓW API/E2E NA CHMURZE ---
+  # Uruchamiamy zbudowany kontener backendu, przekazujemy mu adres bazy i każemy wykonać pytest
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'europe-central2-docker.pkg.dev/$PROJECT_ID/film-rent/backend-img']
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'europe-central2-docker.pkg.dev/$PROJECT_ID/film-rent/frontend-img']
+    args: 
+      - 'run'
+      - '--rm'                             # Usuń kontener po teście
+      - '--env'
+      - 'MONGODB_URL=$_MONGO_URL'          # Przekaż zmienną z Atlasem (tę z Triggera)
+      - 'europe-central2-docker.pkg.dev/$PROJECT_ID/my-repo/backend-img'
+      - 'pytest'                           # Komenda do wykonania w środku
+  # -------------------------------------------------------
 
-  # 4. Wdrożenie Backend do Cloud Run (Port 8080 domyślny)
+  # 3. Wypchnięcie obrazów do rejestru (Tylko jak testy przejdą)
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'europe-central2-docker.pkg.dev/$PROJECT_ID/my-repo/backend-img']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'europe-central2-docker.pkg.dev/$PROJECT_ID/my-repo/frontend-img']
+
+  # 4. Wdrożenie Backend
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -21,14 +33,16 @@ steps:
       - 'deploy'
       - 'backend-service'
       - '--image'
-      - 'europe-central2-docker.pkg.dev/$PROJECT_ID/film-rent/backend-img'
+      - 'europe-central2-docker.pkg.dev/$PROJECT_ID/my-repo/backend-img'
       - '--region'
       - 'europe-central2'
       - '--allow-unauthenticated'
+      - '--port'
+      - '8080'
       - '--set-env-vars'
       - 'MONGODB_URL=$_MONGO_URL'
 
-# 5. Wdrożenie Frontend do Cloud Run
+  # 5. Wdrożenie Frontend
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -36,16 +50,14 @@ steps:
       - 'deploy'
       - 'frontend-service'
       - '--image'
-      - 'europe-central2-docker.pkg.dev/$PROJECT_ID/film-rent/frontend-img'
+      - 'europe-central2-docker.pkg.dev/$PROJECT_ID/my-repo/frontend-img'
       - '--region'
       - 'europe-central2'
       - '--allow-unauthenticated'
-      - '--port'
-      - '80'
 
 images:
-  - 'europe-central2-docker.pkg.dev/$PROJECT_ID/film-rent/backend-img'
-  - 'europe-central2-docker.pkg.dev/$PROJECT_ID/film-rent/frontend-img'
+  - 'europe-central2-docker.pkg.dev/$PROJECT_ID/my-repo/backend-img'
+  - 'europe-central2-docker.pkg.dev/$PROJECT_ID/my-repo/frontend-img'
 
 options:
   logging: CLOUD_LOGGING_ONLY

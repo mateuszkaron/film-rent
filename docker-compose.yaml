@@ -15,7 +15,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - MONGODB_URL=mongodb://mongo:27017
+      - MONGODB_URL=mongodb+srv://admin:QFWn4NfD6k4D0tbk@cluster.yc1uom4.mongodb.net/?appName=Cluster
       - SECRET_KEY=super_tajny_klucz_do_jwt
     depends_on:
       - mongo
