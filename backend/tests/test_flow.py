@@ -66,9 +66,6 @@ def test_full_user_scenario_e2e():
         # --- 4. WYPOŻYCZENIE ---
         response = client.post(f"/rentals?movie_id={movie_id}", headers=auth_header)
         
-        # Jeśli film miał 0 kopii, dostaniemy 400, jeśli był dostępny - 200.
-        # W teście E2E oczekujemy sukcesu, więc w idealnym świecie powinniśmy stworzyć własny film do testu.
-        # Tutaj sprawdzamy czy odpowiedź jest sensowna (200 lub 400 brak kopii).
         assert response.status_code in [200, 400] 
 
         if response.status_code == 200:
