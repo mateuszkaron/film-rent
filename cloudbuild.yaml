@@ -42,7 +42,7 @@ steps:
       - '--allow-unauthenticated'
       - '--port'
       - '80'
-      
+
 # 6. TESTY
   - name: 'gcr.io/cloud-builders/docker'
     args: 
@@ -50,7 +50,7 @@ steps:
       - '--rm'                             
       - '--env'
       - 'MONGODB_URL=$_MONGO_URL'          
-      - 'europe-central2-docker.pkg.dev/$PROJECT_ID/my-repo/backend-img'
+      - 'europe-central2-docker.pkg.dev/$PROJECT_ID/film-rent/backend-img'
       - 'pytest'
 
 images:
