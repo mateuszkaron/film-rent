@@ -30,6 +30,11 @@ DB_NAME = os.getenv("DB_NAME", "wypozyczalnia_db")
 client = AsyncIOMotorClient(MONGO_URL)
 db = client[DB_NAME]
 
+# --- ENDPOINT TESTOWY (Health Check) ---
+@app.get("/")
+async def root():
+    return {"message": "API Wypożyczalni działa poprawnie"}
+
 # --- SECURITY ---
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
