@@ -10,7 +10,7 @@ from typing import List, Optional
 from bson import ObjectId
 import os
 
-app = FastAPI(title="Wypożyczalnia Video - Final Version")
+app = FastAPI(title="FilmRent - Wypożyczalnia Filmów API")
 
 # --- CORS ---
 app.add_middleware(

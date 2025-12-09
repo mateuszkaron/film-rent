@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wypożyczalnia Filmowa</title>
+    <title>FilmRent - Wypożyczalnia Filmów</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,7 +12,7 @@
     
     <div id="auth-screen">
         <div class="auth-box">
-            <h1>🎬 CineStream</h1>
+            <h1>🎬 FilmRent</h1>
             <h3 id="form-title">Zaloguj się do swojego konta</h3>
             <input type="email" id="email" placeholder="Adres e-mail">
             <input type="password" id="password" placeholder="Hasło">
@@ -86,16 +86,13 @@
             <div id="movie-details-content">
                 <!-- Szczegóły filmu będą wstawione tutaj -->
             </div>
-            <div style="margin-top: 20px; text-align: center;">
-                <button onclick="closeMovieDetailsModal()" style="background-color:#ccc; color:black; padding:10px 20px; border:none; border-radius:4px; cursor:pointer;">Zamknij</button>
-            </div>
         </div>
     </div>
 
     <div id="app-screen" class="hidden">
         <header>
             <div style="display: flex; align-items: center;">
-                <h2>🎬 CineStream</h2>
+                <h2>🎬 FilmRent</h2>
                 <div style="margin-left: 30px; display: flex; align-items: center;">
                     <span style="color: var(--text-secondary); font-size: 1.1rem;">Witaj, </span>
                     <span id="user-name" style="margin-left: 8px; font-weight: 600; font-size: 1.1rem;">Użytkowniku</span>
@@ -129,7 +126,7 @@
             <div id="adm-users" class="adm-tab hidden">
                 <div style="margin-bottom: 10px;">
                     <button class="small" onclick="loadUsers()">Odśwież klientów</button>
-                    <button class="small" onclick="showAddUserModal()">➕ Dodaj użytkownika</button>
+                    <button class="small" onclick="showAddUserModal()">Dodaj użytkownika</button>
                 </div>
                 <div style="overflow-x:auto;">
                     <table id="users-table">
@@ -332,7 +329,7 @@
                 <div class="movie-card" onclick="showMovieDetails('${m._id}')">
                     <div class="movie-card-content">
                         <h3>${m.title}</h3>
-                        <div class="genre-director">${m.genre} • Reżyseria: ${m.director}</div>
+                        <div class="genre-director">${m.genre} </br> • Reżyseria: ${m.director}</div>
                         <div class="rating-duration">
                             <span style="display: flex; align-items: center; gap: 5px;">
                                 ⭐ <strong>${m.rating}/10</strong>
