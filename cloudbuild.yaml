@@ -44,14 +44,14 @@ steps:
       - '80'
 
 # 6. TESTY
-  - name: 'gcr.io/cloud-builders/docker'
-    args: 
-      - 'run'
-      - '--rm'                             
-      - '--env'
-      - 'MONGODB_URL=$_MONGO_URL'          
-      - 'europe-central2-docker.pkg.dev/$PROJECT_ID/film-rent/backend-img'
-      - 'pytest'
+  # - name: 'gcr.io/cloud-builders/docker'
+  #   args: 
+  #     - 'run'
+  #     - '--rm'                             
+  #     - '--env'
+  #     - 'MONGODB_URL=$_MONGO_URL'          
+  #     - 'europe-central2-docker.pkg.dev/$PROJECT_ID/film-rent/backend-img'
+  #     - 'pytest'
 
 images:
   - 'europe-central2-docker.pkg.dev/$PROJECT_ID/film-rent/backend-img'

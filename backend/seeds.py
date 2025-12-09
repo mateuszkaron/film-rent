@@ -135,7 +135,7 @@ users_data = [
         "first_name": "Admin",
         "last_name": "Systemu",
         "email": "admin@op.pl",
-        "password": "admin",  # Hasło to 'admin'
+        "password": "admin",  # Hasło 'admin'
         "role": "admin",
         "address": "Serwerownia 1, 00-001 Warszawa",
         "phone_number": "999-999-999"
@@ -144,7 +144,7 @@ users_data = [
         "first_name": "Jan",
         "last_name": "Kowalski",
         "email": "jan@kowalski.pl",
-        "password": "user123", # Hasło to 'user123'
+        "password": "user123", # Hasło 'user123'
         "role": "user",
         "address": "ul. Długa 15, 30-002 Kraków",
         "phone_number": "501-100-100"

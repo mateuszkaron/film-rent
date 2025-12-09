@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wypożyczalnia Cloud - Full</title>
+    <title>Wypożyczalnia Filmowa</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -32,7 +32,30 @@
         </div>
     </div>
 
-    <!-- Modal edycji użytkownika -->
+    <!-- DODAWANIE UZYTKOWNIKA -->
+    <div id="add-user-modal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5);">
+        <div class="modal-content" style="background-color:white; margin:5% auto; padding:20px; border-radius:8px; width:90%; max-width:500px;">
+            <h3 style="color:#333; margin-bottom:20px;">➕ Dodaj nowego użytkownika</h3>
+            <form id="add-user-form">
+                <input type="email" id="add-user-email" placeholder="Email" required style="width:100%; margin-bottom:10px; padding:10px; border:1px solid #ddd; border-radius:4px;">
+                <input type="password" id="add-user-password" placeholder="Hasło" required style="width:100%; margin-bottom:10px; padding:10px; border:1px solid #ddd; border-radius:4px;">
+                <input type="text" id="add-user-firstname" placeholder="Imię" required style="width:100%; margin-bottom:10px; padding:10px; border:1px solid #ddd; border-radius:4px;">
+                <input type="text" id="add-user-lastname" placeholder="Nazwisko" required style="width:100%; margin-bottom:10px; padding:10px; border:1px solid #ddd; border-radius:4px;">
+                <input type="text" id="add-user-address" placeholder="Adres" required style="width:100%; margin-bottom:10px; padding:10px; border:1px solid #ddd; border-radius:4px;">
+                <input type="tel" id="add-user-phone" placeholder="Telefon" required style="width:100%; margin-bottom:10px; padding:10px; border:1px solid #ddd; border-radius:4px;">
+                <select id="add-user-role" style="width:100%; margin-bottom:20px; padding:10px; border:1px solid #ddd; border-radius:4px;">
+                    <option value="user">Użytkownik</option>
+                    <option value="admin">Administrator</option>
+                </select>
+                <div style="display:flex; gap:10px;">
+                    <button type="submit" class="success" style="flex:1;">Dodaj</button>
+                    <button type="button" onclick="closeAddUserModal()" class="secondary" style="flex:1;">Anuluj</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- EDYCJA UZYTKOWNIKA -->
     <div id="edit-user-modal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5);">
         <div class="modal-content" style="background-color:white; margin:5% auto; padding:20px; border-radius:8px; width:90%; max-width:500px;">
             <span class="close" onclick="closeEditUserModal()" style="color:#aaa; float:right; font-size:28px; font-weight:bold; cursor:pointer;">&times;</span>
@@ -56,7 +79,7 @@
         </div>
     </div>
 
-    <!-- Modal szczegółów filmu -->
+    <!-- SZCZEGÓŁY FILMU -->
     <div id="movie-details-modal" class="movie-details-modal">
         <div class="movie-details-content">
             <span class="close" onclick="closeMovieDetailsModal()" style="color:#aaa; float:right; font-size:28px; font-weight:bold; cursor:pointer;">&times;</span>
@@ -106,7 +129,7 @@
             <div id="adm-users" class="adm-tab hidden">
                 <div style="margin-bottom: 10px;">
                     <button class="small" onclick="loadUsers()">Odśwież klientów</button>
-                    <button class="small secondary" onclick="testUsersAPI()">Test API</button>
+                    <button class="small" onclick="showAddUserModal()">➕ Dodaj użytkownika</button>
                 </div>
                 <div style="overflow-x:auto;">
                     <table id="users-table">
@@ -140,14 +163,14 @@
             </div>
         </div>
 
-        <!-- User Navigation -->
+        <!-- MENU -->
         <div id="user-navigation" class="user-nav">
             <button class="user-nav-btn active" onclick="showUserTab('movies')">🎬 Katalog Filmów</button>
             <button class="user-nav-btn" onclick="showUserTab('rentals')">📚 Moje Wypożyczenia</button>
         </div>
 
         <div class="dashboard-grid">
-            <!-- Movies Section -->
+            <!-- KATALOG FILMÓW -->
             <div id="user-movies-section" class="content-section">
                 <h3>🎬 Katalog Filmów</h3>
                 <div style="display:flex; gap:10px; margin-bottom:20px;">
@@ -160,7 +183,7 @@
                 <div id="movies-list" class="movie-list"></div>
             </div>
 
-            <!-- User Rentals Section -->
+            <!-- HISTORIA WYPOŻYCZEŃ -->
             <div id="user-rentals-section" class="content-section hidden">
                 <h3>📚 Historia Wypożyczeń</h3>
                 <div id="user-rentals-list" class="rental-list"></div>
@@ -184,7 +207,7 @@
             document.getElementById('user-role-badge').innerText = role === 'admin' ? 'ADMIN' : 'KLIENT';
             
         if (role === 'admin') {
-            // Admin widzi wyłącznie panel administratora
+            // Admin widzi tylko panel administracyjny
             document.getElementById('admin-panel').classList.remove('hidden');
             document.getElementById('user-navigation').classList.add('hidden');
             document.getElementById('user-movies-section').classList.add('hidden');
@@ -214,28 +237,27 @@
             if (isRegister) {
                 const fname = document.getElementById('fname').value;
                 const lname = document.getElementById('lname').value;
-                const address = document.getElementById('address').value; // Nowe pole
-                const phone = document.getElementById('phone').value;     // Nowe pole
+                const address = document.getElementById('address').value;
+                const phone = document.getElementById('phone').value;
 
                 const res = await fetch(`${API_URL}/register`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         email: email, 
-                        password: password,      // Tu wysyłamy "password", nie "hashed_password"
+                        password: password,
                         first_name: fname, 
                         last_name: lname,
-                        address: address,        // Wysyłamy adres
-                        phone_number: phone      // Wysyłamy telefon
+                        address: address,
+                        phone_number: phone
                     })
                 });
-                // --------------------------------
 
                 if (!res.ok) throw new Error((await res.json()).detail);
                 alert("Zarejestrowano! Zaloguj się.");
                 toggleAuth();
             } else {
-                // Logowanie (bez zmian)
+                // LOGOWANIE
                 const formData = new URLSearchParams();
                 formData.append('username', email);
                 formData.append('password', password);
@@ -276,13 +298,12 @@
         };
     }
 
-    // --- USER FUNCTIONS ---
+    // --- FUNKCJE UŻYTKOWNIKA ---
 
     async function loadMovies() {
         const search = document.getElementById('search-input').value;
         const sort = document.getElementById('sort-select').value;
         
-        // Budowanie URL z parametrami
         let url = `${API_URL}/movies?sort_by=${sort}`;
         if (search) url += `&search=${search}`;
 
@@ -294,13 +315,11 @@
         container.innerHTML = '';
         
         movies.forEach(m => {
-            // Logika dostępności
             const isAvail = m.available_copies > 0;
             const badge = isAvail 
                 ? `<span class="badge avail">Dostępne: ${m.available_copies}</span>` 
                 : `<span class="badge unavail">Brak kopii</span>`;
             
-            // Przycisk usuwania (Tylko Admin)
             const deleteBtn = isAdmin 
                 ? `<button class="danger small" style="margin-top:5px;" onclick="deleteMovie('${m._id}')">Usuń (Admin)</button>` 
                 : '';
@@ -359,10 +378,10 @@
 
 
 
-    // --- ADMIN FUNCTIONS ---
+    // --- FUNKCJE ADMINISTRATORA ---
 
     function switchAdminTab(tabName) {
-        console.log("Przełączanie na zakładkę:", tabName); // Debug
+        console.log("Przełączanie na zakładkę:", tabName);
         
         document.querySelectorAll('.adm-tab').forEach(t => t.classList.add('hidden'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -374,7 +393,6 @@
             console.error(`Nie znaleziono zakładki: adm-${tabName}`);
         }
         
-        // Znajdź właściwy przycisk i zaznacz jako aktywny
         const buttons = document.querySelectorAll('.tab-btn');
         buttons.forEach(btn => {
             if (btn.textContent.includes('Użytkownicy') && tabName === 'users') {
@@ -388,7 +406,6 @@
             }
         });
         
-        // Ładuj dane dla odpowiedniej zakładki
         if(tabName === 'rentals') {
             console.log("Ładowanie wypożyczeń...");
             loadAdminRentals();
@@ -437,7 +454,7 @@
         });
         if(res.ok) {
             loadAdminRentals();
-            loadMovies(); // Odśwież liczbę kopii
+            loadMovies();
         } else alert("Błąd zwrotu");
     }
 
@@ -445,7 +462,7 @@
         try {
             const res = await fetch(`${API_URL}/users`, { headers: getAuthHeaders() });
             
-            // Jeśli token wygasł, wyloguj automatycznie
+            // wyloguj automatycznie
             if (res.status === 401) {
                 logout();
                 return;
@@ -460,9 +477,8 @@
             }
 
             const users = await res.json();
-            console.log("Otrzymano użytkowników:", users); // Debug
+            console.log("Otrzymano użytkowników:", users);
             
-            // Zabezpieczenie: jeśli users nie jest tablicą (np. backend zwrócił błąd)
             if (!Array.isArray(users)) {
                 console.error("Otrzymano błędne dane (nie tablica):", users);
                 alert("Błąd: Otrzymano nieprawidłowe dane z serwera");
@@ -483,13 +499,11 @@
             }
             
             users.forEach(u => {
-                // Używamy "||" żeby wstawić tekst zastępczy, jeśli brakuje danych
                 const name = `${u.first_name || '-'} ${u.last_name || '-'}`;
                 const email = u.email || 'Brak emaila';
                 const role = u.role || 'user';
                 const address = u.address || 'Brak adresu';
                 const phone_number = u.phone_number || 'Brak numeru';
-                // Bezpieczne pobranie długości tablicy
                 const rentalsCount = Array.isArray(u.active_rentals) ? u.active_rentals.length : 0;
                 const id = u._id || u.id; 
 
@@ -548,8 +562,7 @@
         if(res.ok) {
             alert("Film dodany!");
             loadMovies();
-            loadAdminMovies(); // Odśwież też widok administratora
-            // Wyczyść pola
+            loadAdminMovies();
             document.querySelectorAll('#adm-add-movie input').forEach(i => i.value = '');
         } else {
             alert("Błąd dodawania");
@@ -566,38 +579,7 @@
         else alert((await res.json()).detail);
     }
 
-    // Funkcja testowa dla debugowania
-    async function testUsersAPI() {
-        try {
-            console.log("=== TEST API UŻYTKOWNIKÓW ===");
-            const token = localStorage.getItem('token');
-            const role = localStorage.getItem('role');
-            console.log("Token:", token ? "Obecny" : "Brak");
-            console.log("Role:", role);
-            
-            const headers = getAuthHeaders();
-            console.log("Headers:", headers);
-            
-            const response = await fetch(`${API_URL}/users`, { headers });
-            console.log("Status odpowiedzi:", response.status);
-            console.log("Headers odpowiedzi:", [...response.headers.entries()]);
-            
-            if (response.ok) {
-                const data = await response.json();
-                console.log("Dane z API:", data);
-                alert(`Otrzymano ${Array.isArray(data) ? data.length : 0} użytkowników`);
-            } else {
-                const errorText = await response.text();
-                console.log("Błąd odpowiedzi:", errorText);
-                alert(`Błąd API: ${response.status} - ${errorText}`);
-            }
-        } catch (error) {
-            console.error("Błąd testu:", error);
-            alert(`Błąd testu: ${error.message}`);
-        }
-    }
-
-    // Funkcje szczegółów filmu
+    // SZCZEGÓŁY FILMU
     async function showMovieDetails(movieId) {
         try {
             const res = await fetch(`${API_URL}/movies`);
@@ -706,7 +688,67 @@
         }
     }
 
-    // Funkcje edycji użytkownika
+    // DODAWANIE UŻYTKOWNIKA
+    function showAddUserModal() {
+        document.getElementById('add-user-modal').style.display = 'block';
+    }
+
+    function closeAddUserModal() {
+        document.getElementById('add-user-modal').style.display = 'none';
+        document.getElementById('add-user-form').reset();
+    }
+
+    // FORMULARZ DODAWANIA UŻYTKOWNIKA
+    document.getElementById('add-user-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const userData = {
+            email: document.getElementById('add-user-email').value,
+            password: document.getElementById('add-user-password').value,
+            first_name: document.getElementById('add-user-firstname').value,
+            last_name: document.getElementById('add-user-lastname').value,
+            address: document.getElementById('add-user-address').value,
+            phone_number: document.getElementById('add-user-phone').value
+        };
+
+        const role = document.getElementById('add-user-role').value;
+
+        try {
+            // REJESTRACJA UŻYTKOWNIKA
+            const res = await fetch(`${API_URL}/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(userData)
+            });
+
+            if (res.ok) {
+                const newUser = await res.json();
+                
+                // Jeśli ma być adminem, aktualizujemy rolę
+                if (role === 'admin') {
+                    await fetch(`${API_URL}/users/${newUser._id}`, {
+                        method: 'PUT',
+                        headers: {
+                            ...getAuthHeaders(),
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ role: 'admin' })
+                    });
+                }
+
+                alert('Użytkownik został dodany!');
+                closeAddUserModal();
+                loadUsers();
+            } else {
+                const error = await res.json();
+                alert(`Błąd: ${error.detail}`);
+            }
+        } catch (error) {
+            alert(`Błąd podczas dodawania użytkownika: ${error.message}`);
+        }
+    });
+
+    // EDYCJA UŻYTKOWNIKA
     function editUser(id, firstName, lastName, email, address, phone, role) {
         document.getElementById('edit-user-id').value = id;
         document.getElementById('edit-first-name').value = firstName;
@@ -722,7 +764,7 @@
         document.getElementById('edit-user-modal').style.display = 'none';
     }
 
-    // Obsługa formularza edycji
+    // FORMULARZ EDYCJI UŻYTKOWNIKA
     document.getElementById('edit-user-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         
@@ -749,7 +791,7 @@
             if (res.ok) {
                 alert('Użytkownik zaktualizowany pomyślnie!');
                 closeEditUserModal();
-                loadUsers(); // Odśwież listę użytkowników
+                loadUsers();
             } else {
                 const error = await res.json();
                 alert(`Błąd: ${error.detail}`);
@@ -759,16 +801,13 @@
         }
     });
 
-    // User Navigation Functions
+    // MENU UŻYTKOWNIKA
     function showUserTab(tabName) {
-        // Hide all sections
         document.getElementById('user-movies-section').classList.add('hidden');
         document.getElementById('user-rentals-section').classList.add('hidden');
         
-        // Remove active class from all buttons
         document.querySelectorAll('.user-nav-btn').forEach(btn => btn.classList.remove('active'));
         
-        // Show selected section and activate button
         if (tabName === 'movies') {
             document.getElementById('user-movies-section').classList.remove('hidden');
             document.querySelector('.user-nav-btn[onclick="showUserTab(\'movies\')"]').classList.add('active');
@@ -780,7 +819,7 @@
         }
     }
 
-    // Load user rentals
+    // ZAŁADOWANIE WYPOŻYCZEŃ UŻYTKOWNIKA
     async function loadUserRentals() {
         try {
             const res = await fetch(`${API_URL}/my-rentals`, {
@@ -841,7 +880,7 @@
         }
     }
 
-    // Load movies for admin (simplified view)
+    // LADOWANIE FILMÓW DLA ADMINA
     async function loadAdminMovies() {
         try {
             const res = await fetch(`${API_URL}/movies`);
@@ -883,9 +922,6 @@
         }
     }
 
-
-
-    // Zamykanie modala po kliknięciu poza nim
     window.onclick = function(event) {
         const movieModal = document.getElementById('movie-details-modal');
         const editModal = document.getElementById('edit-user-modal');
@@ -898,7 +934,6 @@
         }
     }
 
-    // Start
     checkLogin();
 </script>
 
