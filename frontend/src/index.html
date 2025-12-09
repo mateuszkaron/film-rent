@@ -114,10 +114,20 @@
             </div>
 
             <div id="adm-rentals" class="adm-tab">
-                <button class="small" onclick="loadAdminRentals()">Odśwież listę</button>
+                <div style="display:flex; gap:10px; margin-bottom:15px; align-items:center;">
+                    <button class="small" onclick="loadAdminRentals()">Odśwież listę</button>
+                    <input id="rentals-search" placeholder="Szukaj (klient/email/film)..." oninput="loadAdminRentals()" style="flex:1; max-width:300px;">
+                </div>
                 <div style="overflow-x:auto;">
                     <table id="rentals-table">
-                        <thead><tr><th>Klient</th><th>Film</th><th>Wypożyczenie</th><th>Termin</th><th>Zwrócono</th><th>Akcja</th></tr></thead>
+                        <thead><tr>
+                            <th style="cursor:pointer; user-select:none;" onclick="setSortRentals('user')">Klient <span id="sort-user"></span></th>
+                            <th style="cursor:pointer; user-select:none;" onclick="setSortRentals('movie')">Film <span id="sort-movie"></span></th>
+                            <th style="cursor:pointer; user-select:none;" onclick="setSortRentals('rented_at')">Wypożyczenie <span id="sort-rented_at"></span></th>
+                            <th style="cursor:pointer; user-select:none;" onclick="setSortRentals('due_date')">Termin <span id="sort-due_date"></span></th>
+                            <th>Zwrócono</th>
+                            <th>Akcja</th>
+                        </tr></thead>
                         <tbody></tbody>
                     </table>
                 </div>
@@ -417,31 +427,78 @@
         }
     }
 
-    async function loadAdminRentals() {
-        const res = await fetch(`${API_URL}/admin/rentals`, { headers: getAuthHeaders() });
-        const rentals = await res.json();
-        const tbody = document.querySelector('#rentals-table tbody');
-        tbody.innerHTML = '';
+    let rentalSortState = { sortBy: 'rented_at', sortOrder: 'desc' };
+
+    function setSortRentals(column) {
+        if (rentalSortState.sortBy === column) {
+            rentalSortState.sortOrder = rentalSortState.sortOrder === 'asc' ? 'desc' : 'asc';
+        } else {
+            rentalSortState.sortBy = column;
+            rentalSortState.sortOrder = 'desc';
+        }
+        updateSortIndicators();
+        loadAdminRentals();
+    }
+
+    function updateSortIndicators() {
+        document.getElementById('sort-user').textContent = '';
+        document.getElementById('sort-movie').textContent = '';
+        document.getElementById('sort-rented_at').textContent = '';
+        document.getElementById('sort-due_date').textContent = '';
         
-        rentals.forEach(r => {
-            const isActive = r.returned_at === null;
-            const action = isActive 
-                ? `<button class="small success" onclick="returnMovie('${r._id}')">Zwróć</button>` 
-                : '<span style="color:green">Oddano</span>';
-            const rented = new Date(r.rented_at).toLocaleString('pl-PL');
-            const due = new Date(r.due_date).toLocaleString('pl-PL');
-            const returned = r.returned_at ? new Date(r.returned_at).toLocaleString('pl-PL') : '-';
-            tbody.innerHTML += `
-                <tr>
-                    <td><b>${r.user_fullname}</b><br><small>${r.user_email}</small></td> 
-                    <td>${r.movie_title || r.movie_id}</td>
-                    <td>${rented}</td>
-                    <td>${due}</td>
-                    <td>${returned}</td>
-                    <td>${action}</td>
-                </tr>
-            `;
-        });
+        const indicator = rentalSortState.sortOrder === 'asc' ? '▲' : '▼';
+        const columnMap = {
+            'user': 'sort-user',
+            'movie': 'sort-movie',
+            'rented_at': 'sort-rented_at',
+            'due_date': 'sort-due_date'
+        };
+        if (columnMap[rentalSortState.sortBy]) {
+            document.getElementById(columnMap[rentalSortState.sortBy]).textContent = indicator;
+        }
+    }
+
+    async function loadAdminRentals() {
+        try {
+            const search = document.getElementById('rentals-search')?.value || '';
+            const params = new URLSearchParams({
+                sort_by: rentalSortState.sortBy,
+                sort_order: rentalSortState.sortOrder,
+                ...(search && { search })
+            });
+            
+            const res = await fetch(`${API_URL}/admin/rentals?${params}`, { headers: getAuthHeaders() });
+            const rentals = await res.json();
+            const tbody = document.querySelector('#rentals-table tbody');
+            tbody.innerHTML = '';
+            
+            if (rentals.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#999;">Brak wypożyczeń</td></tr>';
+                return;
+            }
+            
+            rentals.forEach(r => {
+                const isActive = r.returned_at === null;
+                const action = isActive 
+                    ? `<button class="small success" onclick="returnMovie('${r._id}')">Zwróć</button>` 
+                    : '<span style="color:green">Oddano</span>';
+                const rented = new Date(r.rented_at).toLocaleString('pl-PL');
+                const due = new Date(r.due_date).toLocaleString('pl-PL');
+                const returned = r.returned_at ? new Date(r.returned_at).toLocaleString('pl-PL') : '-';
+                tbody.innerHTML += `
+                    <tr>
+                        <td><b>${r.user_fullname}</b><br><small>${r.user_email}</small></td> 
+                        <td>${r.movie_title || r.movie_id}</td>
+                        <td>${rented}</td>
+                        <td>${due}</td>
+                        <td>${returned}</td>
+                        <td>${action}</td>
+                    </tr>
+                `;
+            });
+        } catch(e) {
+            alert('Błąd: ' + e.message);
+        }
     }
 
     async function returnMovie(rentalId) {
@@ -526,54 +583,112 @@
 
     async function deleteUser(id) {
         if(!confirm("Usunąć użytkownika?")) return;
-        const res = await fetch(`${API_URL}/users/${id}`, {
-            method: 'DELETE',
-            headers: getAuthHeaders()
-        });
-        if(res.ok) loadUsers();
-        else alert((await res.json()).detail);
+        try {
+            const res = await fetch(`${API_URL}/users/${id}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            });
+            if(res.ok) {
+                alert("Użytkownik usunięty pomyślnie!");
+                loadUsers();
+            } else {
+                const error = await res.json();
+                alert(`Błąd: ${error.detail || 'Nie udało się usunąć użytkownika'}`);
+            }
+        } catch (error) {
+            alert(`Błąd podczas usuwania użytkownika: ${error.message}`);
+        }
     }
 
     async function addMovie() {
         const actorsInput = document.getElementById('new-actors').value;
         const actors = actorsInput ? actorsInput.split(',').map(actor => actor.trim()).filter(actor => actor) : [];
         
+        const title = document.getElementById('new-title').value.trim();
+        const genre = document.getElementById('new-genre').value.trim();
+        const director = document.getElementById('new-director').value.trim();
+        const rating = parseFloat(document.getElementById('new-rating').value);
+        const duration = parseInt(document.getElementById('new-duration').value);
+        const copies = parseInt(document.getElementById('new-copies').value);
+        const description = document.getElementById('new-desc').value.trim();
+
+        // Walidacja pól
+        if (!title || !genre || !director || !rating || !duration || !copies || !description) {
+            alert("Wszystkie pola są wymagane!");
+            return;
+        }
+
+        if (rating < 1 || rating > 10) {
+            alert("Ocena musi być między 1 a 10!");
+            return;
+        }
+
+        if (duration <= 0 || copies <= 0) {
+            alert("Czas trwania i liczba kopii muszą być większe od 0!");
+            return;
+        }
+
         const movieData = {
-            title: document.getElementById('new-title').value,
-            genre: document.getElementById('new-genre').value,
-            director: document.getElementById('new-director').value,
-            rating: parseFloat(document.getElementById('new-rating').value),
-            duration_minutes: parseInt(document.getElementById('new-duration').value),
-            total_copies: parseInt(document.getElementById('new-copies').value),
-            available_copies: parseInt(document.getElementById('new-copies').value),
-            description: document.getElementById('new-desc').value,
+            title: title,
+            genre: genre,
+            director: director,
+            rating: rating,
+            duration_minutes: duration,
+            total_copies: copies,
+            available_copies: copies,
+            description: description,
             actors: actors
         };
 
-        const res = await fetch(`${API_URL}/movies`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify(movieData)
-        });
+        try {
+            const res = await fetch(`${API_URL}/movies`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(movieData)
+            });
 
-        if(res.ok) {
-            alert("Film dodany!");
-            loadMovies();
-            loadAdminMovies();
-            document.querySelectorAll('#adm-add-movie input').forEach(i => i.value = '');
-        } else {
-            alert("Błąd dodawania");
+            if(res.ok) {
+                alert("Film dodany pomyślnie!");
+                loadMovies();
+                loadAdminMovies();
+                // Wyczyść formularz
+                document.getElementById('new-title').value = '';
+                document.getElementById('new-genre').value = '';
+                document.getElementById('new-director').value = '';
+                document.getElementById('new-rating').value = '';
+                document.getElementById('new-duration').value = '';
+                document.getElementById('new-copies').value = '5';
+                document.getElementById('new-desc').value = '';
+                document.getElementById('new-actors').value = '';
+                // Przejdź do zakładki filmów
+                switchAdminTab('movies');
+            } else {
+                const error = await res.json();
+                alert(`Błąd: ${error.detail || 'Nie udało się dodać filmu'}`);
+            }
+        } catch (error) {
+            alert(`Błąd podczas dodawania filmu: ${error.message}`);
         }
     }
 
     async function deleteMovie(id) {
         if(!confirm("Usunąć film?")) return;
-        const res = await fetch(`${API_URL}/movies/${id}`, {
-            method: 'DELETE',
-            headers: getAuthHeaders()
-        });
-        if(res.ok) loadMovies();
-        else alert((await res.json()).detail);
+        try {
+            const res = await fetch(`${API_URL}/movies/${id}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            });
+            if(res.ok) {
+                alert("Film usunięty pomyślnie!");
+                loadMovies();
+                loadAdminMovies();
+            } else {
+                const error = await res.json();
+                alert(`Błąd: ${error.detail || 'Nie udało się usunąć filmu'}`);
+            }
+        } catch (error) {
+            alert(`Błąd podczas usuwania filmu: ${error.message}`);
+        }
     }
 
     // SZCZEGÓŁY FILMU

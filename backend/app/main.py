@@ -117,6 +117,11 @@ async def get_movies(search: Optional[str] = None, sort_by: Optional[str] = "tit
 
 @app.post("/movies", response_model=MovieModel)
 async def add_movie(movie: MovieModel, _: dict = Depends(get_admin_user)):
+    # Sprawdzenie czy film o takim tytule już istnieje
+    existing_movie = await db.movies.find_one({"title": {"$regex": f"^{movie.title}$", "$options": "i"}})
+    if existing_movie:
+        raise HTTPException(status_code=400, detail=f"Film '{movie.title}' już istnieje w bazie danych!")
+    
     new_movie = await db.movies.insert_one(movie.model_dump(by_alias=True, exclude=["id"]))
     return await db.movies.find_one({"_id": new_movie.inserted_id})
 
@@ -214,8 +219,37 @@ async def rent_movie(movie_id: str, user_id: Optional[str] = None, current_user:
     return {"message": "Wypożyczono", "due_date": rental_data["due_date"]}
 
 @app.get("/admin/rentals", response_model=List[RentalModel])
-async def get_all_rentals(_: dict = Depends(get_admin_user)):
-    return await db.rentals.find().sort("rented_at", -1).to_list(200)
+async def get_all_rentals(
+    search: Optional[str] = None,
+    sort_by: Optional[str] = "rented_at",
+    sort_order: Optional[str] = "desc",
+    _: dict = Depends(get_admin_user)
+):
+    query = {}
+    
+    # Wyszukiwanie po danych klienta, filmie lub dacie
+    if search:
+        query["$or"] = [
+            {"user_fullname": {"$regex": search, "$options": "i"}},
+            {"user_email": {"$regex": search, "$options": "i"}},
+            {"movie_title": {"$regex": search, "$options": "i"}},
+            {"movie_id": search}
+        ]
+    
+    # Sortowanie
+    sort_direction = -1 if sort_order == "desc" else 1
+    cursor = db.rentals.find(query)
+    
+    if sort_by == "user":
+        cursor.sort("user_fullname", sort_direction)
+    elif sort_by == "movie":
+        cursor.sort("movie_title", sort_direction)
+    elif sort_by == "due_date":
+        cursor.sort("due_date", sort_direction)
+    else:  # rented_at (domyślnie)
+        cursor.sort("rented_at", sort_direction)
+    
+    return await cursor.to_list(200)
 
 @app.post("/rentals/return/{rental_id}")
 async def return_movie(rental_id: str, _: dict = Depends(get_admin_user)):
